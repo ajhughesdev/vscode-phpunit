@@ -20,7 +20,7 @@ class NamespaceFilterStrategy extends FilterStrategy {
 
 class ClassFilterStrategy extends FilterStrategy {
     getFilter() {
-        return this.testDefinition.file!;
+        return this.testDefinition.file ? encodeURIComponent(this.testDefinition.file) : '';
     }
 }
 

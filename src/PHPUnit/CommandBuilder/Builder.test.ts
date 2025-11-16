@@ -131,6 +131,24 @@ describe('Builder Test', () => {
                 '--teamcity',
             ]);
         });
+
+        it('should handle file path with spaces using encodeURIComponent', () => {
+            const cwd = phpUnitProject('');
+            const testFile = phpUnitProject('tests with spaces/AssertionsTest.php');
+            const builder = givenBuilder({
+                phpunit: 'vendor/bin/phpunit',
+            }, cwd).setArguments(`${encodeURIComponent(testFile)} --filter='^.*::(test_passed)( with data set .*)?$'`);
+
+            const { runtime, args } = builder.build();
+            expect(runtime).toEqual('php');
+            expect(args).toEqual([
+                'vendor/bin/phpunit',
+                `--filter=^.*::(test_passed)( with data set .*)?$`,
+                phpUnitProject('tests with spaces/AssertionsTest.php'),
+                '--colors=never',
+                '--teamcity',
+            ]);
+        });
     });
 
     describe('RemoteCommand', () => {

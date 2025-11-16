@@ -10,6 +10,15 @@ import { Xdebug } from './Xdebug';
 const isSSH = (command: string) => /^ssh/.test(command);
 const isShellCommand = (command: string) => /sh\s+-c/.test(command);
 const keyVariable = (key: string) => '${' + key + '}';
+const quoteArg = (arg: string) => {
+    // Check if the argument needs quoting (contains spaces)
+    // Don't quote if it's already quoted or if it's a flag (starts with -)
+    if (arg.startsWith('-') || /^["']/.test(arg) || !/\s/.test(arg)) {
+        return arg;
+    }
+    // Quote with double quotes and escape any double quotes inside
+    return `"${arg.replace(/"/g, '\\"')}"`;
+};
 
 export class Builder {
     private readonly pathReplacer: PathReplacer;
@@ -140,6 +149,7 @@ export class Builder {
         return this
             .encodeFilter(this.addParaTestFunctional(args))
             .concat(...(this.xdebug?.getPhpUnitArgs() ?? []))
+            .map(quoteArg)
             .join(' ');
     }
 
