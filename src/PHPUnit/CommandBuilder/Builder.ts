@@ -10,6 +10,26 @@ import { Xdebug } from './Xdebug';
 const isSSH = (command: string) => /^ssh/.test(command);
 const isShellCommand = (command: string) => /sh\s+-c/.test(command);
 const keyVariable = (key: string) => '${' + key + '}';
+const quoteArg = (arg: string) => {
+    // Check if the argument needs quoting (contains spaces AND looks like a path)
+    // Don't quote if it's already quoted, if it's a flag (starts with -), or if it doesn't have spaces
+    if (arg.startsWith('-') || /^["']/.test(arg) || !/\s/.test(arg)) {
+        return arg;
+    }
+    // Only quote if it looks like a file path (contains / or \)
+    // This prevents quoting things like "artisan test" which should remain as separate args
+    if (!/[/\\]/.test(arg)) {
+        return arg;
+    }
+    // Quote with double quotes. Note: This handles the common case of spaces in file paths.
+    // Backslashes in Windows paths are preserved as-is (not escaped) because:
+    // 1. parseArgsStringToArgv correctly handles them inside double quotes
+    // 2. Escaping them would double the backslashes in the output
+    // Double quotes in paths are extremely rare (Windows doesn't allow them, Unix rarely uses them)
+    // and are not fully supported here. The input paths come from encodeURIComponent/decodeURIComponent
+    // which ensures they are valid file paths from the filesystem.
+    return `"${arg.replace(/"/g, '\\"')}"`;
+};
 
 export class Builder {
     private readonly pathReplacer: PathReplacer;
@@ -101,9 +121,9 @@ export class Builder {
 
     private getArguments() {
         return {
-            'php': this.pathReplacer.toRemote(this.getPhp()),
+            'php': quoteArg(this.pathReplacer.toRemote(this.getPhp())),
             'phpargs': this.getPhpArgs(),
-            'phpunit': this.pathReplacer.toRemote(this.getPhpUnit()),
+            'phpunit': quoteArg(this.pathReplacer.toRemote(this.getPhpUnit())),
             'phpunitargs': this.getPhpUnitArgs(),
         };
     }
@@ -140,6 +160,7 @@ export class Builder {
         return this
             .encodeFilter(this.addParaTestFunctional(args))
             .concat(...(this.xdebug?.getPhpUnitArgs() ?? []))
+            .map(quoteArg)
             .join(' ');
     }
 

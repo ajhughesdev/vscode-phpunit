@@ -131,6 +131,45 @@ describe('Builder Test', () => {
                 '--teamcity',
             ]);
         });
+
+        it('should handle file path with spaces using encodeURIComponent', () => {
+            const cwd = phpUnitProject('');
+            const testFile = phpUnitProject('tests with spaces/AssertionsTest.php');
+            const builder = givenBuilder({
+                phpunit: 'vendor/bin/phpunit',
+            }, cwd).setArguments(`${encodeURIComponent(testFile)} --filter='^.*::(test_passed)( with data set .*)?$'`);
+
+            const { runtime, args } = builder.build();
+            expect(runtime).toEqual('php');
+            expect(args).toEqual([
+                'vendor/bin/phpunit',
+                `--filter=^.*::(test_passed)( with data set .*)?$`,
+                phpUnitProject('tests with spaces/AssertionsTest.php'),
+                '--colors=never',
+                '--teamcity',
+            ]);
+        });
+
+        it('should handle macOS path with multiple spaces like from the issue', () => {
+            const cwd = '/Users/ajhughesdev/Local Beta Sites/branch-legal/app/public/wp-content/plugins/legal-docs-transfer';
+            const testFile = '/Users/ajhughesdev/Local Beta Sites/branch-legal/app/public/wp-content/plugins/legal-docs-transfer/tests/test-version-helper.php';
+            const phpunitPath = '/Users/ajhughesdev/Local Beta Sites/branch-legal/app/public/wp-content/plugins/legal-docs-transfer/vendor/bin/phpunit';
+            const filter = '^.*::(test_collect_family_traverses_graph_depth_first)(( with (data set )?.*)?)?$';
+            
+            const builder = givenBuilder({
+                phpunit: phpunitPath,
+            }, cwd).setArguments(`${encodeURIComponent(testFile)} --filter="${filter}"`);
+
+            const { runtime, args } = builder.build();
+            expect(runtime).toEqual('php');
+            expect(args).toEqual([
+                phpunitPath,
+                `--filter=${filter}`,
+                testFile,
+                '--colors=never',
+                '--teamcity',
+            ]);
+        });
     });
 
     describe('RemoteCommand', () => {
