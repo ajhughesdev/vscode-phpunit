@@ -21,7 +21,13 @@ const quoteArg = (arg: string) => {
     if (!/[/\\]/.test(arg)) {
         return arg;
     }
-    // Quote with double quotes and escape any double quotes inside
+    // Quote with double quotes. Note: This handles the common case of spaces in file paths.
+    // Backslashes in Windows paths are preserved as-is (not escaped) because:
+    // 1. parseArgsStringToArgv correctly handles them inside double quotes
+    // 2. Escaping them would double the backslashes in the output
+    // Double quotes in paths are extremely rare (Windows doesn't allow them, Unix rarely uses them)
+    // and are not fully supported here. The input paths come from encodeURIComponent/decodeURIComponent
+    // which ensures they are valid file paths from the filesystem.
     return `"${arg.replace(/"/g, '\\"')}"`;
 };
 
