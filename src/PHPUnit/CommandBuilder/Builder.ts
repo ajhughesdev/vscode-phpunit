@@ -11,9 +11,14 @@ const isSSH = (command: string) => /^ssh/.test(command);
 const isShellCommand = (command: string) => /sh\s+-c/.test(command);
 const keyVariable = (key: string) => '${' + key + '}';
 const quoteArg = (arg: string) => {
-    // Check if the argument needs quoting (contains spaces)
-    // Don't quote if it's already quoted or if it's a flag (starts with -)
+    // Check if the argument needs quoting (contains spaces AND looks like a path)
+    // Don't quote if it's already quoted, if it's a flag (starts with -), or if it doesn't have spaces
     if (arg.startsWith('-') || /^["']/.test(arg) || !/\s/.test(arg)) {
+        return arg;
+    }
+    // Only quote if it looks like a file path (contains / or \)
+    // This prevents quoting things like "artisan test" which should remain as separate args
+    if (!/[/\\]/.test(arg)) {
         return arg;
     }
     // Quote with double quotes and escape any double quotes inside
@@ -110,9 +115,9 @@ export class Builder {
 
     private getArguments() {
         return {
-            'php': this.pathReplacer.toRemote(this.getPhp()),
+            'php': quoteArg(this.pathReplacer.toRemote(this.getPhp())),
             'phpargs': this.getPhpArgs(),
-            'phpunit': this.pathReplacer.toRemote(this.getPhpUnit()),
+            'phpunit': quoteArg(this.pathReplacer.toRemote(this.getPhpUnit())),
             'phpunitargs': this.getPhpUnitArgs(),
         };
     }
